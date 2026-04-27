@@ -1,0 +1,1833 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Claude Design Cursus — Live Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #050505;
+    --bg-card: #0c0c0c;
+    --bg-hover: #141414;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --text: #e8e8e8;
+    --text-dim: rgba(232,232,232,0.55);
+    --text-faint: rgba(232,232,232,0.35);
+    --accent: #d4b676;
+    --accent-soft: rgba(212,182,118,0.15);
+    --success: #6FFF00;
+    --success-soft: rgba(111,255,0,0.12);
+    --error: #ff6b6b;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  code, .mono { font-family: var(--mono); font-size: 0.88em; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(5,5,5,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .topbar h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400; font-size: 1.45rem;
+    letter-spacing: 0.01em;
+  }
+  .topbar h1 em { color: var(--accent); font-style: italic; }
+  .topbar .progress-total {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--mono); font-size: 0.75rem;
+    color: var(--text-dim); letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .progress-text { cursor: pointer; }
+  .progress-bar {
+    width: 200px; height: 6px;
+    background: var(--border); border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--success);
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px rgba(111,255,0,0.45);
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(111,255,0,0.6);
+    animation: pulse 2s infinite;
+    display: inline-block;
+  }
+  .status-dot.stale { background: var(--text-faint); box-shadow: none; animation: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 60px);
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 28px 18px;
+    position: sticky; top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+  .sidebar h3 {
+    font-family: var(--mono);
+    font-size: 0.68rem; letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px; padding-left: 8px;
+  }
+  .lesson-list {
+    display: flex; flex-direction: column; gap: 2px;
+    list-style: none;
+  }
+  .lesson-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .lesson-item:hover { background: var(--bg-hover); }
+  .lesson-item.active {
+    background: var(--accent-soft);
+    border-color: rgba(212,182,118,0.25);
+  }
+  .lesson-item.completed .lesson-title { color: var(--text-dim); }
+  .lesson-check {
+    width: 18px; height: 18px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    color: var(--text-faint);
+  }
+  .lesson-item.completed .lesson-check {
+    background: var(--success);
+    border-color: var(--success);
+    color: #000;
+  }
+  .lesson-item.active .lesson-check {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .lesson-num {
+    font-family: var(--mono); font-size: 0.7rem;
+    color: var(--text-faint); min-width: 22px;
+  }
+  .lesson-item.active .lesson-num,
+  .lesson-item.active .lesson-title { color: var(--text); }
+  .lesson-title { font-size: 0.88rem; flex: 1; }
+  .lesson-time {
+    font-family: var(--mono); font-size: 0.65rem;
+    color: var(--text-faint);
+  }
+
+  .sidebar-footer {
+    margin-top: 28px; padding-top: 20px;
+    border-top: 1px solid var(--border);
+    padding-left: 8px;
+  }
+  .sidebar-footer .label {
+    font-family: var(--mono); font-size: 0.65rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 6px;
+  }
+  .sidebar-footer code {
+    display: block; padding: 8px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .main {
+    padding: 40px 48px 80px;
+    max-width: 900px;
+  }
+  .main .lesson-header {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .main .lesson-eyebrow {
+    font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .main .lesson-h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 2.4rem;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .main .lesson-h1 em { color: var(--accent); font-style: italic; }
+  .main .lesson-meta {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .main .lesson-meta span strong { color: var(--text); }
+  .main .lesson-intro {
+    font-size: 1.05rem; color: var(--text-dim);
+    margin-bottom: 32px;
+  }
+
+  .steps { display: flex; flex-direction: column; gap: 14px; }
+  .step {
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 6px;
+    display: flex; gap: 16px; align-items: flex-start;
+    transition: all 0.25s;
+  }
+  .step.active {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--accent-soft) 0%, var(--bg-card) 80%);
+  }
+  .step.completed { opacity: 0.55; }
+  .step.completed .step-title { text-decoration: line-through; text-decoration-color: var(--text-faint); }
+  .step-icon {
+    width: 28px; height: 28px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--text-faint);
+  }
+  .step.completed .step-icon {
+    background: var(--success); border-color: var(--success); color: #000;
+  }
+  .step.active .step-icon {
+    border-color: var(--accent); color: var(--accent);
+  }
+  .step-body { flex: 1; }
+  .step-title {
+    font-weight: 600; font-size: 1rem;
+    margin-bottom: 4px;
+  }
+  .step-desc { font-size: 0.9rem; color: var(--text-dim); }
+
+  .prompts-section {
+    margin-top: 40px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 8px;
+  }
+  .prompts-section h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400; font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+  .prompts-section p.intro {
+    color: var(--text-dim); font-size: 0.9rem;
+    margin-bottom: 18px;
+  }
+  .prompts-grid {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .btn-prompt {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    border-radius: 5px;
+    font-family: var(--mono); font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .btn-prompt:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+  }
+  .btn-prompt.copied {
+    background: var(--success-soft);
+    border-color: var(--success);
+    color: var(--success);
+  }
+  .btn-prompt .icon {
+    font-size: 0.9rem; color: var(--text-faint);
+  }
+
+  .done-banner {
+    padding: 24px;
+    background: var(--success-soft);
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .done-banner h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400; font-size: 1.8rem;
+    color: var(--success);
+    margin-bottom: 6px;
+  }
+
+  .prompt-data { display: none; }
+
+  /* Instructor mode */
+  .instructor-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    border-radius: 4px;
+    font-family: var(--mono); font-size: 0.7rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .instructor-toggle:hover { border-color: var(--accent); color: var(--text); }
+  .instructor-toggle.on {
+    background: rgba(255,107,107,0.12);
+    border-color: var(--error);
+    color: var(--error);
+  }
+  .instructor-toggle .rec-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-faint);
+  }
+  .instructor-toggle.on .rec-dot {
+    background: var(--error);
+    box-shadow: 0 0 8px var(--error);
+    animation: pulse 1.4s infinite;
+  }
+
+  .script-section {
+    margin-top: 40px;
+    padding: 24px;
+    border: 1px dashed var(--error);
+    background: rgba(255,107,107,0.05);
+    border-radius: 8px;
+  }
+  .script-section .label-rec {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 0.7rem;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--error); margin-bottom: 12px;
+  }
+  .script-section h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400; font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+  .script-segment {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border-left: 3px solid var(--error);
+    border-radius: 3px;
+  }
+  .script-segment:last-child { margin-bottom: 0; }
+  .script-segment-head {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .script-segment-head .timing {
+    color: var(--error); font-weight: 500;
+  }
+  .script-segment-head .shot {
+    color: var(--text-dim); font-style: italic;
+  }
+  .script-segment-title {
+    font-weight: 600; font-size: 0.95rem;
+    margin-bottom: 8px;
+  }
+  .script-lines {
+    list-style: none; padding: 0;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .script-lines li {
+    padding: 4px 0 4px 16px;
+    position: relative;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .script-lines li::before {
+    content: '▸';
+    position: absolute; left: 0;
+    color: var(--error);
+    font-size: 0.75rem;
+  }
+  .script-note {
+    margin-top: 8px; padding: 6px 10px;
+    background: rgba(255,107,107,0.06);
+    border-radius: 3px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .main { padding: 28px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Claude <em>Design</em> Cursus</h1>
+  <button class="instructor-toggle" id="instructor-toggle" title="Toggle instructor mode (script + shot-directions zichtbaar)">
+    <span class="rec-dot"></span>
+    <span id="instructor-toggle-label">Instructor</span>
+  </button>
+  <div class="progress-total">
+    <span class="progress-text" id="progress-text" title="Click to follow current lesson">0 / 9</span>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+    <span title="Live sync status"><span class="status-dot stale" id="status-dot"></span></span>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h3>Lessen</h3>
+    <ul class="lesson-list" id="lesson-list"></ul>
+    <div class="sidebar-footer">
+      <div class="label">Start in terminal</div>
+      <code>/design:00-intro</code>
+      <div class="label">Progress file</div>
+      <code style="font-size:0.68rem;color:var(--text-dim);">~/.claude-design-cursus/<br>progress.json</code>
+    </div>
+  </aside>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="prompt-data">
+<pre id="prompt-design-md-interview">Ik wil een design.md bouwen voor mijn merk. Stel mij 5 vragen, een voor een:
+
+1. Merknaam en wat doe je?
+2. 3 woorden die je merk beschrijven
+3. Kleuren - exacte hex codes, geen "blauw"
+4. 3 referentie-merken + WAT je van elk wilt meenemen
+5. Tone of voice - altijd/nooit
+
+Na mijn 5 antwoorden: bouw een complete design.md met brand identity, kleurenpalet (hex), typografie, referenties, animation rules, voice guidelines en export targets.</pre>
+
+<pre id="prompt-orbis-onepager">Bouw de volledige Orbis.Nft one-pager (4 secties in een scroll). Dark space thema, NFT collection.
+
+Design.md: ORBIS-DESIGN.md (zie Additional Notes).
+
+SECTIE 1 - HERO
+- Full-bleed CloudFront video loop (autoPlay muted loop playsInline object-cover)
+- Liquid-glass navbar (5 links: Homepage, Gallery, Buy NFT, FAQ, Contact) met hover text-neon
+- 3 social icons rechts boven (56x56 liquid-glass)
+- Headline "Beyond earth" in Anton 180px + "Nft collection" in Condiment cursive neon #6FFF00
+
+SECTIE 2 - ABOUT
+- Tweede video background (different CloudFront URL)
+- "Hello! I'm orbis" heading + Condiment "Orbis" overlay
+- Mono paragraph max-width 266px
+
+SECTIE 3 - COLLECTION GRID
+- Solid bg #010828
+- 3 NFT cards met video loops
+- Rarity scores: 8.7 / 9.0 / 8.2
+- Purple gradient chevron buttons
+
+SECTIE 4 - CTA
+- Derde full-bleed video
+- "JOIN US. REVEAL WHAT'S HIDDEN. DEFINE WHAT'S NEXT. FOLLOW THE SIGNAL." in Anton uppercase
+- "Go beyond" in Condiment cursive overlay
+
+Kleuren STRICT: #010828 bg, #EFF4FF cream text, #6FFF00 neon accents.
+Fonts: Anton (heading) + Condiment (cursive) + JetBrains Mono (body).
+Responsive: social icons stacken onder heading op &lt;lg breakpoint.
+
+Ask me any questions before you begin.</pre>
+
+<pre id="prompt-orbis-mobile">Bouw de Orbis.Nft Mobile Companion App - iPhone 15 Pro mockup centered met dark space backdrop eromheen. 6 interactieve schermen met transitions.
+
+Design.md: ORBIS-DESIGN.md (zie Additional Notes).
+
+SCHERM 1 - Entry / Splash
+- Hero video background
+- "Orbis" cursive + "Nft" Anton
+- "ENTER COLLECTION" button met neon underline
+
+SCHERM 2 - Home
+- Featured NFT card video
+- 3 stats tiles: Floor / Holders / Rarity
+- Horizontal trending scroll
+- Bottom tab bar
+
+SCHERM 3 - Gallery
+- 2-col grid van 6 NFT cards
+- Filter pills: ALL / RARE / LEGENDARY / MYTHIC
+
+SCHERM 4 - NFT Detail
+- Hero video
+- "Signal #847" heading
+- Rarity 9.1/10
+- Metadata + description
+- BUY 0.9 ETH button
+
+SCHERM 5 - Wallet
+- Portfolio card "4.82 ETH"
+- +12.4% neon sparkline
+- 3 holdings rows
+
+SCHERM 6 - CTA / Invite
+- Full-bleed video
+- "JOIN US. REVEAL WHAT'S HIDDEN. FOLLOW THE SIGNAL."
+- Social stack
+
+Zelfde #010828 + neon green + liquid-glass als de website.
+
+Ask me any questions before you begin.</pre>
+
+<pre id="prompt-orbis-deck">Bouw de Orbis.Nft Investor Deck - 10 slides, 16:9 aspect ratio, donker space thema.
+
+Design.md: ORBIS-DESIGN.md (zie Additional Notes).
+
+GUARDRAIL: vision + market + product. GEEN overpromising. DappRadar/Chainalysis marktcijfers gebruiken, geen verzonnen traction-claims. Integriteit boven hype.
+
+SLIDE 1 - Title
+"Orbis.Nft" Anton 180px + "Investor Deck Q1 2026" + "Beyond earth" Condiment cursive
+
+SLIDE 2 - Context
+"Everything we've mapped / fits on this page"
+
+SLIDE 3 - Problem
+"Three collapses": 98% drops lack narrative / 2s attention span / 0 space-aesthetic leaders
+
+SLIDE 4 - Shift
+NFT video background. "Form. Silence. Distance."
+
+SLIDE 5 - Collection
+3 NFT cards grid (rarity 8.7 / 9.0 / 8.2) - zelfde als site
+
+SLIDE 6 - Market
+"$24B market / looking for a story": $24.8B cap, 112M wallets, 3.2x narrative uplift
+
+SLIDE 7 - Product
+"A digital object fixed beyond time and place" + 10K pieces, ERC-721A, Ethereum+Base
+
+SLIDE 8 - Traction / Timeline
+4-step horizontal timeline (filled=done, outline=upcoming)
+
+SLIDE 9 - Crew
+Rhea Vessel, Pollux Draco, Lyra Nox (Art / Contracts / Community)
+
+SLIDE 10 - Ask / CTA
+"Join us. Reveal what's hidden. Define what's next. Follow the signal." + $2.4M seed
+
+Dark bg #010828 overall, neon green sparzaam als accent, Condiment cursive voor emotion. Giant Anton cijfers voor stats. Mono voor labels.
+
+Ask me any questions before you begin.</pre>
+
+<pre id="prompt-187n-hero-nano">Create a cinematic hero image for 187N.AI, enterprise AI infrastructure agency.
+
+COMPOSITION: Split layout - LEFT 40% negative space for headline overlay (MUST be empty), RIGHT 60% the scene.
+
+SCENE (right 60%):
+- CENTERPIECE: 3D infinity-loop front-facing, glossy obsidian with emerald rim-light glow, levitating
+- ORBITAL LAYER: 4-6 humanoid wireframe silhouettes (faceless, agent-like) orbiting the loop
+- DATA-BEAMS: thin emerald light-streams from each agent to the loop's chambers
+- FLOOR: holographic grid with perspective, receding to vanishing point
+- ATMOSPHERE: subtle emerald particles, horizontal scan-lines across scene, void black domination
+
+COLORS STRICT: #050a08 (void black dominant) + #00ff88 (emerald accents with glow). NO blue, purple, cyan, pink.
+
+NO text, no logos baked in - the infinity-loop IS the brandmark.
+
+Style: cinematic key-lit, cybersecurity ops-center at night, film-grade lighting, 16:9 aspect ratio.</pre>
+
+<pre id="prompt-187n-seedance">Seedance 2.0 motion prompt - 187N Agent Command Scene (loop rotation + data flow).
+
+STARTING FRAME: uploaded still image (hero-still.png).
+
+DURATION: 8 seconds.
+ASPECT: 16:9.
+RESOLUTION: 1080p.
+ENHANCE PROMPT: OFF (critical - otherwise output diverges from prompt).
+
+CAMERA:
+- Z-axis ONLY. NO rotation. NO 360 spin.
+- First 4s: slow dolly back (zoom out ~10%)
+- Last 4s: smooth push-in (zoom in ~10%)
+
+CENTERPIECE - infinity loop:
+- Front-facing throughout (no flip, no rotation)
+- Breathing pulse scale 1.0 -> 1.03 on 2-second cycle
+
+AGENT SILHOUETTES (orbital layer):
+- Subtle motion: one nods, one tilts, one activates (brief glow flare), one swaps position slightly
+- NOT a coordinated dance - organic, idle-ops feel
+
+DATA-BEAMS:
+- Pulse 2-3 per second, staggered between agents
+- Emerald color intensifies at mid-beam then fades
+
+ACTIVITY RING:
+- Expanding ring emission from loop-center every 2-2.5 seconds
+- Fades out at 40% of scene width
+
+SCAN-LINES:
+- Subtle continuous horizontal drift
+- Bright sweep line every 3-4 seconds
+
+Overall mood: control room at night, always-on, quiet confidence.</pre>
+
+<pre id="prompt-handoff-claude-code">In Claude Design: Export dropdown -> "Handoff to Claude Code" -> copy. This generates a ~hundreds-of-lines prompt with exact colors, fonts, CSS classes, video URLs, responsive breakpoints, section structure.
+
+Then in Claude Code terminal:
+/build-page
+
+Paste the export. Claude Code scaffolds Vite + React + TypeScript, installs Tailwind + lucide-react, creates components/sections for each section, builds liquid-glass CSS class with conic border-mask, downloads texture.png placeholder.
+
+Then:
+/deploy-site
+
+Runs: git init, gh repo create, vercel link, vercel deploy --prod. Output: orbis-nft.vercel.app (or your variant).</pre>
+</div>
+
+<script>
+const LESSONS = [
+  {
+    id: '00', slug: '00-intro', num: 0, title: 'Intro', time: '3 min',
+    h1: 'Welkom bij de <em>Claude Design</em> Cursus',
+    eyebrow: 'Les 0 - Start hier',
+    intro: 'Anthropic heeft Claude Design gedropt. Iedereen gebruikt het voor een landing page. Ik laat je zien hoe je er een complete design-business mee runt. 7 lessen, 75 min, gratis.',
+    steps: [
+      { title: 'Token economics warning', desc: 'Claude Design heeft eigen weekly quota - gelijk voor Pro/Max 5/Max 20x. Deze cursus leert quota-efficient werken.' },
+      { title: 'Setup check', desc: 'Run `claude --version`, `gh auth status`, `vercel whoami`. Alles groen?' },
+      { title: 'Klaarzetten voor Les 1', desc: 'Open claude.ai/design in tab 2, Claude Code in tab 1. Dat is de werksetup.' }
+    ],
+    prompts: [],
+    script: [
+      {
+        timing: '0:00 - 0:20', shot: 'Close-up, Dubai balcony (golden hour)',
+        title: 'Hook', note: 'Energie: hype maar grounded. Echt enthousiasme, geen fake hype.',
+        lines: [
+          'Anthropic heeft Claude Design gedropt. Op claude.ai/design.',
+          'Iedereen gebruikt het voor een losse landing page.',
+          'Ik ga je laten zien hoe je er een complete design-business mee runt.',
+          'Geen Figma-vervanger. Een complete AI design operator.'
+        ]
+      },
+      {
+        timing: '0:20 - 1:20', shot: 'Screen cuts (3x 20s) met voice-over',
+        title: 'Proof — 3 eindresultaten',
+        lines: [
+          'Deze hele site — 187N.AI — 11 secties, cinematic animaties, live op Vercel — gebouwd in 30 minuten.',
+          'Mobile client portal, interactief, acht schermen, stuur je naar elke klant. Zelfde 30 min.',
+          '10-slide vision deck, export naar PowerPoint. Zelfde source, zelfde tijd.'
+        ]
+      },
+      {
+        timing: '1:20 - 1:50', shot: 'Medium, serious-but-helpful tone + on-screen graphic',
+        title: 'Token Economics Warning',
+        lines: [
+          'Voordat we beginnen — een ding dat niemand je vertelt.',
+          'Claude Design heeft zijn eigen weekly limit. Los van je Pro of Max abonnement.',
+          'Kicker: die limiet is hetzelfde voor Pro, Max 5, en Max 20x. Meer betalen geeft geen extra quota.',
+          'Een landing page met tweaks = 10% van je week. Een design systeem bouwen = 20-25%.',
+          'Deze cursus is niet alleen "hoe werkt het" — het is "hoe gebruik je het zonder quota te verbranden".'
+        ]
+      },
+      {
+        timing: '1:50 - 2:50', shot: 'Medium shot, zittend/staand aan bureau',
+        title: 'Kader + 7-lessen overzicht',
+        lines: [
+          'Dit is wat deze cursus gaat doen:',
+          '7 lessen. 75 minuten. Gratis.',
+          'Van brand fundament tot live productie.',
+          'Plus: ik bouw live 187N.AI — onze eigen enterprise AI agency — als doorlopende demo.',
+          'Les 1 — Je design.md. Het fundament.',
+          'Les 2 — Prototype Mode. De 7-vragen loop + de workflow die 50% quota bespaart.',
+          'Les 3 — One-pager websites. Orbis.Nft live build.',
+          'Les 4 — Mobile client portals + vision decks. De output-modi die andere makers overslaan.',
+          'Les 5 — Cinematic hero videos. Nano Banana Pro, Claude Design, Seedance 2.0.',
+          'Les 6 — Van design naar live website. De handoff naar Claude Code.',
+          'Les 7 — Het Design Command Center. Alles in een run. 30 minuten.',
+          'Geen voorkennis nodig.',
+          'Je hebt Claude Pro Max, Claude Code, GitHub, Vercel. Voor les 5: Higgsfield.',
+          'Wat je nu in 75 minuten leert, verkoop je de komende maanden voor 4-15K per project.'
+        ]
+      },
+      {
+        timing: '2:50 - 3:10', shot: 'Cut naar terminal + talking head',
+        title: 'Setup check',
+        lines: [
+          'Quick check of je setup klopt.',
+          'Claude Code, GitHub CLI, Vercel CLI.',
+          'Als een faalt, link in description met de setup guide.'
+        ]
+      },
+      {
+        timing: '3:10 - 3:30', shot: 'Return talking head + cut naar Les 1 thumbnail',
+        title: 'CTA naar Les 1',
+        lines: [
+          'Klaar? Laten we je design.md bouwen.',
+          'Les 1 gaat nu live.',
+          'Let\'s go.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '01', slug: '01-design-md', num: 1, title: 'Design.md', time: '10 min',
+    h1: 'Jouw merk als <em>fundament</em>',
+    eyebrow: 'Les 1 - Het fundament',
+    intro: '3 manieren om een design.md te bouwen: interview, getdesign.md hack, codebase import. Zonder design.md = "AI-look". Met design.md = on-brand vanaf frame 1.',
+    steps: [
+      { title: 'Manier 1: het interview', desc: '5 vragen in Claude Design -> complete design.md in 5 min.' },
+      { title: 'Manier 2: getdesign.md hack', desc: '68 gratis brand kits van grote merken. Kopieer structuur, vervang content.' },
+      { title: 'Manier 3: codebase import', desc: 'Sleep bestaande codebase in Claude Design -> design.md uit je eigen werk.' },
+      { title: 'Design Systems vs design.md', desc: 'Native feature kost 20-25% quota. Design.md = gratis, portable, Git-controlled. Kies design.md voor 99% van de cases.' }
+    ],
+    prompts: [
+      { id: 'prompt-design-md-interview', label: '1. Interview prompt - 5 vragen voor design.md' }
+    ],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Talking head',
+        title: 'Les-opening',
+        lines: [
+          'Les 1. Design.md.',
+          'Het belangrijkste bestand dat je ooit zult maken voor Claude Design.',
+          'Zonder brand-fundament krijg je "AI-look" sites. Met een goeie design.md krijg je on-brand werk vanaf de eerste render.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:30', shot: 'Split-screen comparison (zonder vs met design.md)',
+        title: 'Waarom design.md cruciaal is',
+        lines: [
+          'Zelfde prompt. Zelfde brief. Verschil: design.md.',
+          'Links — vage richting. Rechts — exacte blueprint.',
+          'Dit is waarom 90% van alle AI-sites er hetzelfde uitzien.'
+        ]
+      },
+      {
+        timing: '1:30 - 3:30', shot: 'Terminal + Claude Code screen share (5 vragen live beantwoorden)',
+        title: 'Manier 1 — Interview',
+        note: '187N voorbeeld-antwoorden: 187N.AI. Technical, Confident, Terminal-aesthetic. Void #050a08 + emerald #00ff88. Vercel, Linear, Stripe. Builder-to-builder.',
+        lines: [
+          'Manier 1. De snelste. Het interview.',
+          'Je plakt een prompt in Claude Code. Die stelt je 5 vragen.',
+          'Boom. Vijf minuten later. Volledige design.md met kleurenpalet, typografie, animatie-rules, voice guidelines.'
+        ]
+      },
+      {
+        timing: '3:30 - 4:30', shot: 'Browser screen share — https://getdesign.md',
+        title: 'Manier 2 — getdesign.md Hack',
+        lines: [
+          'Manier 2. De hack die niemand je vertelt.',
+          '68 gratis brand kits van grote merken.',
+          'Kopieer structuur, vervang namen, pas kleuren aan.',
+          'Dit is geen jatten — dit is leren van de beste document-architectuur die er is.'
+        ]
+      },
+      {
+        timing: '4:30 - 5:30', shot: 'Claude Design — sleep codebase folder in chat',
+        title: 'Manier 3 — Codebase Import',
+        lines: [
+          'Manier 3. Als je al een bestaande site hebt — dit is magie.',
+          'Claude Design analyseert kleuren, typography, components, animaties.',
+          'Output: complete design.md op basis van bestaand werk. Perfect voor rebrands.'
+        ]
+      },
+      {
+        timing: '5:30 - 7:30', shot: 'DESIGN.md open in editor, split-screen met Claude Design render',
+        title: '187N DESIGN.md walkthrough',
+        lines: [
+          'Brand Identity: wie je bent in 5 regels. Geen vage adjectieven.',
+          'Kleurenpalet: elke kleur heeft een rol. Hex codes letterlijk. #050a08 voor void, #00ff88 voor emerald met glow.',
+          'Typografie: Halant voor display, Inter voor body, JetBrains Mono voor labels. Fluid met clamp().',
+          'Referenties: 3 merken + WAT je van elk wilt. 10x beter dan adjectieven.',
+          'Animation rules: Framer Motion smoothEase, fadeUp variant, 100ms stagger. Vastgelegd.',
+          'Voice rules: Altijd/Nooit tabel. Dwingt Claude in je stem.',
+          'Export targets: one-pager, mobile portal, vision deck.'
+        ]
+      },
+      {
+        timing: '7:30 - 8:30', shot: 'Claude Design Design Systems tab',
+        title: 'Design Systems — native feature',
+        lines: [
+          'Nog een ding. Anthropic heeft ook een native Design Systems feature.',
+          'Kost 20-25% weekly quota per build.',
+          'Design.md voordeel: gratis, portable, Git-controlled, werkt in Claude Code.',
+          'Native Design Systems: geintegreerd in UI, auto-toegepast.',
+          'Mijn regel: design.md voor 99% van de users. Native alleen bij 100+ projecten per jaar.'
+        ]
+      },
+      {
+        timing: '8:30 - 9:30', shot: 'Return talking head',
+        title: 'Pro Tips',
+        lines: [
+          'Hoe specifieker, hoe beter. Exacte hex codes + referentie-merken is goud.',
+          'Update live — voeg toe wat mist tijdens werken.',
+          'Voor grotere merken: master + sub-brand files.',
+          '"Use my design.md" als magische zin naar Claude Design.'
+        ]
+      },
+      {
+        timing: '9:30 - 10:00', shot: 'On-screen gift overlay',
+        title: 'Gift + transitie',
+        lines: [
+          'Gift voor les 1: design.md template + 4 import-methodes gids.',
+          'Kant-en-klaar om nu in je project te droppen. Link in description.',
+          'Fundament klaar. Les 2: Prototype Mode. Daar wordt het pas echt belachelijk.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '02', slug: '02-prototype-mode', num: 2, title: 'Prototype Mode', time: '12 min',
+    h1: 'De 7-vragen loop + 4 <em>edit-modes</em>',
+    eyebrow: 'Les 2 - Feedback loop',
+    intro: 'Wireframe vs high-fi. Plan mode via een zin. 7 vragen voor je render. 50% quota-besparing via varianten-eerst workflow. 4 edit-modes voor micro-precisie.',
+    steps: [
+      { title: 'Wireframe vs high-fi', desc: 'Altijd wireframe voor multi-page. Layout eerst, styling later. Check model selector = Opus 4.7.' },
+      { title: 'Plan mode = 1 zin', desc: '`Ask me any questions before you begin.` -> Claude Design stelt 5-14 vragen voor het bouwt.' },
+      { title: 'De 7-vragen loop live', desc: 'Plak prompt + de zin, beantwoord 7 vragen specifiek, krijg on-brand render.' },
+      { title: 'Varianten-eerst workflow', desc: 'Vraag: "Give me 2 variants that are completely different." Kies 1. Tweak binnen die variant. 50% quota-besparing.' },
+      { title: '4 edit-modes', desc: 'Tweaks (systeem), Comments (batch), Draw (mood), Element (chirurgisch). Gebruik alle 4.' }
+    ],
+    prompts: [],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Talking head',
+        title: 'Les-opening',
+        lines: [
+          'Les 2. Dit is waar Claude Design echt uniek is.',
+          'Geen enkele andere AI design tool heeft dit.',
+          'De vragen-loop. Plus 4 edit-modes die het voelen als live schetsen met iemand die alles begrijpt.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:30', shot: 'Talking head + screen split (wireframe vs high-fi)',
+        title: 'Wireframe vs High-Fidelity',
+        lines: [
+          'Eerst: Claude Design heeft twee modes.',
+          'Wireframe — structuur, geen styling. Voor snelle iteratie.',
+          'High-fidelity — volledige design. Voor presentatie en handoff.',
+          'Wireframe: je test layout + flow zonder dat je verliefd wordt op kleuren.',
+          'High-fi: als de layout klopt, upgrade je naar final styling.',
+          'Pro tip: start ALTIJD wireframe bij multi-page sites. Anders verspil je uren op paginas die toch niet werken.'
+        ]
+      },
+      {
+        timing: '1:30 - 2:00', shot: 'Claude Design — model selector dropdown',
+        title: 'Model selectie — Opus 4.7 default',
+        lines: [
+          'Een ding dat veel mensen missen — bovenaan zit een model selector.',
+          'Default = Opus 4.7. Laat dat staan.',
+          'Waarom: Opus 4.7 heeft 3x hogere fidelity voor screenshots dan 4.6.',
+          'Sonnet alleen voor snelle wireframes. Voor echte designs: Opus 4.7.'
+        ]
+      },
+      {
+        timing: '2:00 - 3:00', shot: 'Talking head -> prompt-input met "Ask me any questions..."',
+        title: 'Plan Mode — de geheime prompt-techniek',
+        note: 'Callout: "Ask me any questions before you begin."',
+        lines: [
+          'Tweede geheim — plan mode in Claude Design.',
+          'Niet zichtbaar als knop. Het is een prompt-techniek.',
+          'Die ene zin verandert alles.',
+          'Claude Design gaat 5 tot 14 vragen stellen voordat het iets bouwt.',
+          'Doelgroep, stijl, density, mood, content, referenties — alles.',
+          'Resultaat: je eerste render is bijna direct wat je wilde.',
+          'Bespaart je 4 revisie-rondes. En elke revisie kost quota.'
+        ]
+      },
+      {
+        timing: '3:00 - 4:30', shot: 'Claude Design live demo — 7 vragen beantwoorden',
+        title: 'De 7-vragen loop',
+        lines: [
+          'Hier komt de killer-feature.',
+          'Als ik een prompt plak — Claude Design bouwt NIET meteen. Eerst stelt het 7 vragen.',
+          'Marketing site — specifieker dan "website".',
+          'Terminal-aesthetic, technical confidence — matcht design.md.',
+          'USE MY DESIGN.MD — magische zin. Dit dwingt naar je tokens.',
+          'Moderate density met veel breathing room — enterprise wil nooit dense.',
+          'Confident en technisch. Cybersecurity ops-center at night.',
+          'Dit is plan-mode voor design. Je lost blinde vlekken op VOOR de code er is.',
+          'De 4 revisies die je normaal zou doen — die voorkom je hier.'
+        ]
+      },
+      {
+        timing: '4:30 - 6:00', shot: 'Claude Design render, real-time scroll-through',
+        title: 'Claude Design bouwt live',
+        lines: [
+          'Nu bouwt het. In 30-60 seconden komt de high-fi hero.',
+          'Infinity-loop rendered in 3D, agents orbiting, data-beams, emerald glow — alles op basis van onze vragen.',
+          'Kijk dit. Eerste render. Geen revisies. On-brand vanaf frame 1.',
+          'Dit is het verschil dat design.md maakt.'
+        ]
+      },
+      {
+        timing: '6:00 - 7:30', shot: 'Direct in camera, serieus moment',
+        title: 'De workflow die 50% quota bespaart',
+        note: 'Callout: "Regel: Varianten eerst. Tweaks daarna."',
+        lines: [
+          'Dit is het belangrijkste stuk van deze les.',
+          'Iedereen doet dit verkeerd.',
+          'Ze maken een render. Vinden het niet goed. Beginnen dan met tweaks, tweaks, tweaks.',
+          'Ze blazen hun quota op binnen een dag.',
+          'Juiste workflow heeft TWEE levels: macro + micro.',
+          'Macro = varianten. Totaal andere lay-outs.',
+          'Je vraagt Claude Design: Give me 2 variants that are completely different.',
+          'Claude Design komt met totaal andere richtingen. Terminal, synthwave, editorial, brutalist.',
+          'Kies er een. Pas DAN doe je tweaks. Binnen de gekozen variant.',
+          'Ik begin altijd met 1 basis + 2 varianten = 3 opties.',
+          'Kies er een. Dan 15 tweaks.',
+          'Bespaart 50% quota vergeleken met "tweak tot ik het mooi vind".'
+        ]
+      },
+      {
+        timing: '7:30 - 9:30', shot: '4 modes live demo (elk ~30s)',
+        title: 'De 4 Edit-Modes',
+        lines: [
+          'Oke, first render. Nu komt het ECHT interessante. 4 manieren om te bewerken.',
+          'Tweaks = parameters. Sliders, color pickers. Systeem-brede aanpassingen.',
+          '"Make everything 20% more spacious" — kan in een slider-beweging.',
+          'Comments mode — queue meerdere wijzigingen. Dit is UX-review modus. 8 dingen tegelijk bewerken.',
+          'Draw mode — voor als je geen woorden hebt. Omcirkel, beschrijf in natural language, Claude Design snapt het.',
+          'Element-select — chirurgisch. Een element, precise control.',
+          'Vier modes. Verschillende doelen.',
+          'Tweaks voor systeem. Comments voor batch. Draw voor mood. Element voor precision.',
+          'Meeste designers gebruiken alleen Element — mis je 80% van de kracht.'
+        ]
+      },
+      {
+        timing: '9:30 - 10:15', shot: 'Claude Design full-screen preview + design file',
+        title: 'Preview + design file',
+        lines: [
+          'Full-screen preview — zo voelt het voor je user.',
+          'Check motion, check responsive.',
+          'Design file onder motorkap — alles gecategoriseerd, layers, tokens.',
+          'Dit is wat straks naar Claude Code gaat in Les 6.'
+        ]
+      },
+      {
+        timing: '10:15 - 11:15', shot: 'Talking head',
+        title: 'Pro tips + veel-gemaakte fouten',
+        lines: [
+          'Antwoord altijd specifiek op de 7 vragen. "Medium" is niks. "Moderate density, 2-3 sections per viewport" is bruikbaar.',
+          'Start wireframe voor multi-page. Layout eerst, styling later.',
+          'Gebruik "use my design.md" zo vaak mogelijk.',
+          'Comments mode voor client-review sessies — batch 10 wijzigingen in een shot.',
+          'Skip geen vragen. Claude Design raadt — raadt vaak verkeerd.',
+          'Geen "verras me". Geef richting. Dit is engineering, niet art class.',
+          'Niet 7 keer opnieuw prompten. Bouw eens, dan iterate met edit-modes.'
+        ]
+      },
+      {
+        timing: '11:15 - 11:40', shot: 'Gift overlay + prompt-pack in editor',
+        title: 'Gift unlock',
+        lines: [
+          'Gift voor les 2. 10 mega alpha prompts — kant-en-klaar te plakken in Claude Design.',
+          'Plus een complete gids voor de 4 edit-modes.',
+          'Niet vage prompts. Echte prompts met hex codes, typography, animatie-types, referentie-merken.',
+          'Cinematic ecom, SaaS landing, agency portfolio, coach brand, pitch deck, mobile app, editorial, event, DTC product, portfolio case study.',
+          'Plak een. Vul placeholder in. Bouw. Link in description.'
+        ]
+      },
+      {
+        timing: '11:40 - 12:00', shot: 'Cut naar Les 3 thumbnail',
+        title: 'Transitie naar Les 3',
+        lines: [
+          'Oke. Je kan nu een pagina bouwen. Mooi.',
+          'Les 3: multi-page sites. Hoe je van een prompt naar een hele 5-pagina architectuur gaat.',
+          'Dit is waar het agency-verdienmodel zit.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '03', slug: '03-multi-page', num: 3, title: 'One-Pager Website', time: '10 min',
+    h1: 'Live build - <em>Orbis.Nft</em>',
+    eyebrow: 'Les 3 - Live build voor iemand anders',
+    intro: 'Vanaf hier bouwen we voor Orbis.Nft (NFT collection, dark space thema) - niet voor 187N. Dit bewijst: zelfde systeem werkt voor elke klant. One-pagers verkopen voor 4-7K euro.',
+    steps: [
+      { title: 'De 4 secties van Orbis.Nft', desc: 'Hero -> About -> Collection Grid -> CTA. Een storyline: earth -> orbis -> collection -> join.' },
+      { title: 'Dribbble screenshot methode', desc: 'Search "NFT landing dark". Pick layout met scroll-rhythm. Alleen voor STRUCTUUR, niet styling.' },
+      { title: 'Dubbele input in Claude Design', desc: 'ORBIS-DESIGN.md + Dribbble screenshot + logo = 3 inputs die samen werken.' },
+      { title: 'Live build - one-pager', desc: 'Plak Orbis One-Pager prompt (zie hieronder), 7-vragen loop, 60-120s render.' },
+      { title: 'Consistency check', desc: 'Scroll 4 secties. Hover states, social icons 56x56, kleuren overall, mobile responsive. Fix via element-select of comment-mode.' }
+    ],
+    prompts: [
+      { id: 'prompt-orbis-onepager', label: '1. Orbis One-Pager (4 secties + videos)' }
+    ],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Talking head',
+        title: 'Les-opening',
+        lines: [
+          'Les 3. Van een sectie naar een volledige one-pager.',
+          'En vanaf nu: we bouwen niet meer voor 187N. We bouwen voor iemand anders.',
+          'Orbis.Nft — een NFT collection. Dark space thema. Totaal ander merk dan ons.',
+          'Dit is waar het agency-verdienmodel zit: een losse sectie verkoop je niet. Een complete one-pager verkoop je voor 4-7K euro.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:30', shot: 'Comparison: 5 losse paginas vs een lange scroll',
+        title: 'Waarom one-pager, niet multi-page',
+        lines: [
+          'Moderne sites zijn one-pagers — alles in een scroll.',
+          'Linear, Vercel, top tech merken — een pagina.',
+          'Waarom? Attention. Users scrollen door een narrative. Geen keuzes.',
+          'Storytelling rhythm telt. Elke sectie bouwt op de vorige.'
+        ]
+      },
+      {
+        timing: '1:30 - 2:30', shot: 'Open reference spec in Claude Design',
+        title: 'De 4 secties van Orbis.Nft',
+        lines: [
+          'Hero — full-bleed video loop, "Beyond earth" + "Nft collection" cursive accent, navbar liquid-glass, social icons.',
+          'About — tweede video background, "Hello! I\'m orbis" + Condiment "Orbis" overlay, mono paragraph.',
+          'Collection Grid — solid #010828 bg, 3 NFT cards met video loops, rarity scores, purple chevron buttons.',
+          'CTA — derde video, "Go beyond" cursive, "JOIN US. REVEAL WHAT\'S HIDDEN. DEFINE WHAT\'S NEXT. FOLLOW THE SIGNAL."',
+          'Vier blokken. Een storyline: earth -> orbis -> collection -> join.',
+          'Anders dan 187N — niet agency/enterprise maar NFT/web3/space. Compleet andere aesthetiek. Zelfde systeem.'
+        ]
+      },
+      {
+        timing: '2:30 - 3:30', shot: 'Browser, Dribbble search',
+        title: 'Dribbble Screenshot Methode',
+        lines: [
+          'Gebruik Dribbble als referentie — alleen voor STRUCTUUR, niet styling.',
+          'Zoek de scroll-rhythm die je wilt.',
+          'Iemand heeft dit voor een echte klant gebouwd — de structuur werkt.',
+          'Wij vervangen alleen de styling met onze ORBIS-DESIGN.md.'
+        ]
+      },
+      {
+        timing: '3:30 - 4:30', shot: 'Claude Design — nieuwe project, 3 uploads',
+        title: 'De Dubbele Input',
+        lines: [
+          'Nu de magie: dubbele input.',
+          'Design.md voor hoe het eruit ziet. Screenshot voor hoe het gestructureerd is.',
+          'Plus: logo upload voor de hero.',
+          'Claude Design combineert de drie inputs.'
+        ]
+      },
+      {
+        timing: '4:30 - 6:30', shot: 'Claude Design render in real-time (60-120 sec)',
+        title: 'Live build — Orbis.Nft one-pager',
+        lines: [
+          '60 tot 120 seconden voor de complete one-pager.',
+          'Hero met full-bleed CloudFront video loop, Anton heading, Condiment cursive "Nft collection" in neon green.',
+          'Liquid-glass navbar bovenaan, 3 social buttons rechts boven.',
+          'Scroll: About sectie met tweede video, "I\'m orbis" heading.',
+          'Collection Grid: 3 NFT cards met rarity scores, purple gradient chevron buttons.',
+          'Final CTA: full-bleed video, "JOIN US" Anton uppercase, "Go beyond" cursive overlay.'
+        ]
+      },
+      {
+        timing: '6:30 - 7:30', shot: 'Scroll door alle 4 secties in Claude Design preview',
+        title: 'Consistency Check',
+        lines: [
+          'Voor handoff: check consistency.',
+          'Navbar hover states klopt? Check. Social icons 56x56 liquid-glass? Check.',
+          'Typography: Anton uppercase overal, Condiment alleen voor accent, mono voor body paragraphs?',
+          'Kleuren matchen: #010828 bg, #EFF4FF cream text, #6FFF00 neon accents?',
+          'Mobile responsive per sectie? Check — social icons stacked below heading op <lg.',
+          'Als een sectie afwijkt: element-select, kopieer waarden. Of comment "maak deze sectie stylistisch identiek aan hero".'
+        ]
+      },
+      {
+        timing: '7:30 - 8:30', shot: 'Claude Design element-select in actie',
+        title: 'Placeholder Replace',
+        lines: [
+          'Claude Design laadt soms wrong video in wrong slot. Check volgorde.',
+          'Rarity scores moeten 8.7 / 9.0 / 8.2 zijn — in die volgorde.',
+          'Element-select is voor dit soort werk de snelste manier.'
+        ]
+      },
+      {
+        timing: '8:30 - 9:30', shot: 'Claude Design export dropdown',
+        title: 'Handoff naar Claude Code',
+        lines: [
+          'Klik Export. Handoff to Claude Code.',
+          'Deze prompt bevat honderden regels specs: exacte hex codes, font families, liquid-glass CSS class, video URLs, responsive breakpoints.',
+          'Claude Code krijgt een complete briefing.',
+          'Dit plak je straks in Les 6 in /build-page.'
+        ]
+      },
+      {
+        timing: '9:30 - 10:00', shot: 'On-screen gift overlay',
+        title: 'Gift + transitie',
+        lines: [
+          'Gift voor les 3: Dribbble reference library + Orbis.Nft one-pager prompt + 5 mega prompts voor andere niches.',
+          'SaaS, agency, enterprise, coach, portfolio. Link in description.',
+          'Plus: run /design-prompts in Claude Code -> 7 vragen -> jouw eigen brand\'s one-pager prompt.',
+          'Les 4: mobile apps + slide decks voor Orbis. De output-modi die andere makers overslaan.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '04', slug: '04-mobile-decks', num: 4, title: 'Mobile + Deck', time: '10 min',
+    h1: 'Mobile app + <em>investor deck</em>',
+    eyebrow: 'Les 4 - Output uitbreiding',
+    intro: 'Zelfde design.md, nieuwe outputs: mobile companion app (6 screens) + investor deck (10 slides). Bundle 10-15K euro per klant. Zelfde tijd, 2-3x ticket size.',
+    steps: [
+      { title: 'Mobile app setup', desc: 'Nieuwe chat, upload ORBIS-DESIGN.md + logo, plak mobile prompt.' },
+      { title: 'Demo 6 schermen', desc: 'Entry, Home, Gallery, NFT Detail, Wallet, CTA. Click door, check consistency met site.' },
+      { title: 'Duplicate + Remix (5% quota)', desc: 'Als je web-design al hebt: Share -> Duplicate and remix -> "Show in mobile format". Kost 5% ipv 10%.' },
+      { title: 'Investor deck met guardrail', desc: 'NFT/web3 deck: vision + realistic market. GEEN overpromising. DappRadar cijfers, geen verzonnen claims.' },
+      { title: 'Export .pptx / Canva / PDF', desc: '3 export-opties. .pptx voor klant-edits. Canva voor hun workflow. PDF voor enterprise distributie.' }
+    ],
+    prompts: [
+      { id: 'prompt-orbis-mobile', label: '2. Orbis Mobile Companion (6 schermen)' },
+      { id: 'prompt-orbis-deck', label: '3. Orbis Investor Deck (10 slides)' }
+    ],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Talking head',
+        title: 'Les-opening',
+        lines: [
+          'Les 4. De output-modi die andere makers overslaan.',
+          'Claude Design is niet alleen voor sites. Mobile apps. Pitch decks. Slides.',
+          'Zelfde ORBIS-DESIGN.md. Andere outputs. Andere facturen.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:00', shot: 'Talking head + on-screen pricing overlay',
+        title: 'Waarom dit je aanbod verbreedt',
+        lines: [
+          'Klant wil one-pager: 4-7K euro.',
+          'Klant wil one-pager + mobile app: 6-9K euro.',
+          'Klant wil one-pager + mobile + investor deck: 10-15K euro.',
+          'Zelfde brand, zelfde tijd. 2-3x ticket.',
+          'Een brand blueprint, drie deliverables. Unfair advantage.'
+        ]
+      },
+      {
+        timing: '1:00 - 4:30', shot: 'Claude Design screen — nieuwe chat, upload + prompt',
+        title: 'Mobile App — Orbis.Nft Companion',
+        lines: [
+          'Companion app voor de NFT collection — mobile-first.',
+          'iPhone 15 Pro mockup centered, dark space backdrop eromheen.',
+          '6 schermen: Entry -> Home -> Gallery -> NFT Detail -> Wallet -> CTA.',
+          'Zelfde #010828 + neon green + liquid-glass als de site.',
+          'Entry: hero video background, "Orbis" cursive + "Nft" Anton, "ENTER COLLECTION" button.',
+          'Home: featured NFT card video, 3 stats tiles, horizontal trending scroll, bottom tab bar.',
+          'Gallery: 2-col grid van 6 NFT cards, filter pills.',
+          'NFT Detail: hero video, "Signal #847", rarity 9.1/10, BUY 0.9Ξ button.',
+          'Wallet: portfolio card "4.82 Ξ", +12.4% neon sparkline, 3 holdings rows.',
+          'CTA: full-bleed video, "JOIN US. REVEAL WHAT\'S HIDDEN. FOLLOW THE SIGNAL."',
+          'Elke transition is real. Je kan doorklikken.',
+          'Rarity scores, sparklines, video loops in cards — allemaal live.'
+        ]
+      },
+      {
+        timing: '4:30 - 5:30', shot: 'Claude Design share knop -> Duplicate and remix',
+        title: 'Pro Tip — Duplicate en Remix',
+        lines: [
+          'Als je al een web-design klaar hebt, hoef je mobile niet from scratch te bouwen.',
+          'Share -> Duplicate en Remix -> "Show me same design in mobile format".',
+          'Claude Design remixt naar 3 mobile variants. Kost 5% quota.',
+          'Hergebruikt design.md, content, styling. Perfect voor consistency.'
+        ]
+      },
+      {
+        timing: '5:30 - 5:45', shot: 'Claude Design export dropdown',
+        title: 'Mobile Handoff Opties',
+        lines: [
+          'Twee handoff-opties.',
+          'Shareable preview link — stuur naar klant voor interactive test.',
+          'React Native / Flutter export — boilerplate code voor developer.',
+          'Voor pitch-phase gebruik je de preview link. 99% van de tijd is dat genoeg.'
+        ]
+      },
+      {
+        timing: '5:45 - 8:30', shot: 'Nieuwe Claude Design chat, investor deck build',
+        title: 'Slide Deck — Orbis.Nft Investor Deck',
+        note: 'KRITIEK: vision + market + product. Geen overpromising. Vision + realistic roadmap > hype.',
+        lines: [
+          'Belangrijk: voor NFT/web3 decks — vision + market + product. Geen overpromising.',
+          'We tonen marktcijfers (DappRadar, Chainalysis) niet overdreven traction-claims.',
+          'Hard guardrail: geen "X miljoen verkocht" als het niet klopt.',
+          'Voor investeerders is dit de regel — integriteit boven hype.',
+          'Title: "Orbis.Nft" Anton 180px + "Investor Deck".',
+          'Problem: "Three collapses": 98% drops lack narrative / 2s attention / 0 space-leaders.',
+          'Collection: 3 NFT cards (8.7 / 9.0 / 8.2 rarity) — zelfde als site.',
+          'Market: 24.8B cap, 112M wallets, 3.2x narrative uplift.',
+          'Product: 10K pieces, ERC-721A, Ethereum+Base.',
+          'Crew: Rhea Vessel, Pollux Draco, Lyra Nox.',
+          'Ask: Join us. Reveal. Define. Follow the signal. + 2.4M seed.',
+          'Tien slides. Consistent design language. Typography doet het werk.',
+          'Elke slide earns its place. Geen filler.'
+        ]
+      },
+      {
+        timing: '8:30 - 9:15', shot: 'Export dropdown -> 3 opties',
+        title: 'Export — PowerPoint, Canva, PDF',
+        lines: [
+          'Drie exports. Drie use-cases. Zelfde source.',
+          'PowerPoint voor klant-edits. Canva voor Canva-workflow. PDF voor enterprise distributie.'
+        ]
+      },
+      {
+        timing: '9:15 - 9:45', shot: 'Return talking head',
+        title: 'Wanneer welke output',
+        lines: [
+          'One-pager website — leads en conversie.',
+          'Mobile app — retention en daily engagement (holders checken wallet dagelijks).',
+          'Investor deck — pitches, VC calls, partner gesprekken.',
+          'Alle drie delen dezelfde brand DNA. Zelfde tokens, zelfde fonts, zelfde voice.'
+        ]
+      },
+      {
+        timing: '9:45 - 10:00', shot: 'Gift overlay',
+        title: 'Gift + transitie',
+        lines: [
+          'Gift voor les 4: Orbis mobile app prompt + Orbis investor deck prompt.',
+          'Inclusief de expliciete guardrails voor investor decks.',
+          'Plus kijker-skill /design-prompts: genereert mobile + deck prompts voor jouw eigen brand.',
+          'Les 5: cinematic hero videos. Nano Banana + Seedance 2.0. Film-niveau.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '05', slug: '05-hero-video', num: 5, title: 'Cinematic Hero', time: '10 min',
+    h1: 'Nano Banana -> <em>Seedance</em>',
+    eyebrow: 'Les 5 - Film-niveau',
+    intro: 'Workflow: Nano Banana Pro -> Claude Design -> Seedance 2.0 -> MP4 swap. Zeven minuten werk, resultaat cinematic. Dit is waar klantsites naar 15K+ bundle-niveau gaan.',
+    steps: [
+      { title: 'Waarom geen "AI vibe"', desc: 'Iedereen doet gekleurde blob + particles. Wij tonen letterlijk de business. 187N agent-command scene als voorbeeld.' },
+      { title: 'Beat 1: compositie denken', desc: 'Dribbble referenties. Split-hero: 40% links leeg voor headline, 60% rechts voor scene.' },
+      { title: 'Beat 2: Nano Banana Pro still', desc: 'Plak hero-scene prompt. Strict kleuren. No text, no logos - de scene IS het brandmark. 20-40s generatie.' },
+      { title: 'Beat 3: Claude Design hero build', desc: 'Upload still + design.md. Claude Design bouwt hero-sectie erover. ~4% quota.' },
+      { title: 'Beat 4: Seedance 2.0', desc: 'Upload still als starting frame. 8s, 1080p, 16:9. ENHANCE PROMPT UIT (kritiek). 2-5 min generatie.' },
+      { title: 'Beat 5: MP4 swap + mobile fallback', desc: 'Upload mp4 in Claude Design chat -> swap prompt. Mobile krijgt still (data-besparing).' }
+    ],
+    prompts: [
+      { id: 'prompt-187n-hero-nano', label: '1. Nano Banana Pro hero prompt (187N scene)' },
+      { id: 'prompt-187n-seedance', label: '2. Seedance 2.0 motion prompt (8s)' }
+    ],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Direct in camera, hype',
+        title: 'Les-opening',
+        lines: [
+          'Les 5. Laten we een klantsite naar een ander niveau tillen.',
+          'Cinematic hero video ipv stilstaande afbeelding.',
+          'Dit is het verschil tussen "nice site" en "film-level klantwerk".',
+          'Workflow: Nano Banana Pro -> Claude Design -> Seedance 2.0 -> MP4 swap.',
+          'Zeven minuten werk. Resultaat: cinematic.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:30', shot: 'Split-screen — generic AI blob vs 187N Agent Command Scene',
+        title: 'Waarom deze scene — niet generiek AI-art',
+        lines: [
+          'Iedereen maakt een "AI vibe" hero. Generiek. Klant vergeet het meteen.',
+          'Wij doen iets anders. We tonen letterlijk onze business.',
+          'Het 187N infinity logo in het midden als command. 4-6 agent silhouettes orbiting. Data-beams connecting. Holografische grid floor.',
+          'Je klant ziet niet alleen je logo — je klant ziet je hele bedrijfsmodel.',
+          'AI agents rond een central system, 24/7, altijd aan. Dit is agency-level branding.'
+        ]
+      },
+      {
+        timing: '1:30 - 2:30', shot: 'Dribbble search + composition wireframe',
+        title: 'Beat 1 — Compositie Denken',
+        lines: [
+          'Voordat je een image genereert: denk aan compositie.',
+          'Waar staat de tekst? Waar is de image? Waar is de dead space?',
+          'Voor 187N willen we split-hero: 40% links leeg voor headline, 60% rechts voor de scene.',
+          'De compositie dicteert je prompt.'
+        ]
+      },
+      {
+        timing: '2:30 - 4:30', shot: 'Higgsfield Nano Banana Pro screen',
+        title: 'Beat 2 — Nano Banana Pro',
+        lines: [
+          'Key regels in mijn prompt:',
+          'LEFT 40% negative space voor headline overlay.',
+          'Centerpiece: 3D infinity-loop front-facing, glossy obsidian, emerald rim-light.',
+          'Orbital layer: 4-6 humanoid wireframe silhouettes — faceless, agent-achtig.',
+          'Data-beams van elke agent naar de loop\'s chambers.',
+          'Grid floor met perspective, receding naar vanishing point.',
+          'Emerald particles, scan-lines, void black domineert.',
+          'Kleuren strict: #050a08 + #00ff88. Geen blauw, paars, cyan.',
+          'No text, no baked logos — het logo in de scene IS het brandmark.',
+          '40% links leeg. 60% rechts een complete ops-center scene.',
+          'Je klant snapt in een oogopslag wat je doet.'
+        ]
+      },
+      {
+        timing: '4:30 - 6:00', shot: 'Claude Design screen — nieuwe chat',
+        title: 'Beat 3 — Claude Design Hero Build',
+        lines: [
+          'Plan mode activated. Claude Design stelt vragen. Snel beantwoorden.',
+          'Render 30-60 sec. Kost 4% weekly quota.',
+          'Resultaat: on-brand hero met onze custom Nano Banana image.'
+        ]
+      },
+      {
+        timing: '6:00 - 8:00', shot: 'Higgsfield Seedance 2.0 screen',
+        title: 'Beat 4 — Seedance 2.0 Animatie',
+        note: 'KRITIEK: Enhance Prompt UIT. Anders krijg je iets anders dan gevraagd.',
+        lines: [
+          'Aspect ratio: 16:9. Resolutie: 1080p. Length: 8 seconden.',
+          'Enhance Prompt: UIT. DIT IS KRITIEK.',
+          'GEEN 360 rotation. Logo blijft front-facing.',
+          'Camera z-axis only — eerst 4s dolly back, laatste 4s push-in.',
+          'Logo breathing pulse 1.0 tot 1.03 op 2-sec cycle.',
+          'Agent silhouettes subtle motion — een knikt, een tilt, een activate, een swap.',
+          'Data-beams pulse 2-3 per sec staggered.',
+          'Activity ring elke 2-2.5s vanuit loop-center.',
+          'Scan-lines subtle continuous + bright sweep elke 3-4s.'
+        ]
+      },
+      {
+        timing: '8:00 - 9:00', shot: 'Terug naar Claude Design — zelfde chat als Beat 3',
+        title: 'Beat 5 — MP4 Swap in Claude Design',
+        lines: [
+          'Claude Design begrijpt het. Vervangt de achtergrond.',
+          'Zelfde layout, zelfde tekst, zelfde CTAs. Maar nu cinematic video achter.',
+          '"Autoplay muted loop" gebeurt automatisch.'
+        ]
+      },
+      {
+        timing: '9:00 - 9:30', shot: 'Claude Design mobile preview toggle',
+        title: 'Beat 6 — Mobile Fallback Check',
+        lines: [
+          'Een laatste ding. Mobile.',
+          'Toggle mobile preview. Mobile users zien stilstaande image.',
+          'Data-besparing. Niemand wil 10MB videoload op 4G.',
+          'Claude Design regelt dit automatisch — video voor desktop, still voor mobile.'
+        ]
+      },
+      {
+        timing: '9:30 - 10:00', shot: 'Gift overlay',
+        title: 'Gift + transitie',
+        lines: [
+          'Gift voor les 5: Hero Video Prompt Pack.',
+          '5 Nano Banana composition prompts + 10 Seedance motion prompts + complete 187N walkthrough.',
+          'Les 6: hoe breng je dit naar productie. Met ZIP export voor media-heavy projecten.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '06', slug: '06-live-website', num: 6, title: 'Live Website', time: '12 min',
+    h1: 'Van design naar <em>productie</em>',
+    eyebrow: 'Les 6 - Handoff + deploy',
+    intro: 'Dit is waar 90% afhaakt. Handoff Claude Design -> /build-page (Vite + React + Tailwind) -> /deploy-site (GitHub + Vercel) -> live URL. ~10 min van design naar productie.',
+    steps: [
+      { title: 'De handoff uit Claude Design', desc: 'Export -> Handoff to Claude Code -> copy. Honderden regels specs (colors, fonts, CSS, video URLs).' },
+      { title: 'CLAUDE.md webapp blueprint', desc: 'Handboek voor Claude Code: tech stack, folder structure, liquid-glass rules, video rules. Combineert met design.md + export.' },
+      { title: '/build-page skill', desc: 'Run in terminal. Scaffold Vite + React + Tailwind + lucide-react. Design tokens in Tailwind config, Google Fonts, sections in components/.' },
+      { title: 'Lokale preview + performance', desc: '`pnpm dev`, check alle secties, mobile viewport, Lighthouse 90+. Zonder deze stack: 2-3 dagen. Nu: 5 min.' },
+      { title: '/deploy-site naar Vercel', desc: 'Run in terminal. git init, gh repo create, vercel deploy --prod. Output: jouw-site.vercel.app live met SSL+CDN.' },
+      { title: 'Custom domain', desc: 'Optioneel voor klant: `vercel domains add` + DNS update. 5 min, SSL auto. Essentieel voor NFT/web3 trust.' }
+    ],
+    prompts: [
+      { id: 'prompt-handoff-claude-code', label: '1. Handoff flow - Claude Design -> /build-page -> /deploy-site' }
+    ],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Talking head',
+        title: 'Les-opening',
+        note: 'KRITIEK: pre-record hele demo als backup. Als live deploy faalt -> cut naar pre-recorded.',
+        lines: [
+          'Les 6. Dit is waar 90% van de mensen afhaakt.',
+          'Prachtig Orbis.Nft design in Claude Design. Mooi.',
+          'Maar hoe wordt het een LIVE URL?',
+          'Hoe neemt de klant het over? Hoe werkt SEO? Performance? Analytics?',
+          'Dit is productie. Geen prototype meer.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:30', shot: 'Claude Design — Orbis.Nft project uit Les 3',
+        title: 'De Handoff',
+        lines: [
+          'Hier is onze Orbis.Nft one-pager uit Les 3.',
+          'Klik Export. Handoff to Claude Code.',
+          'Claude Design genereert een lange prompt. Letterlijk honderden regels specs.',
+          'Kleuren, fonts, liquid-glass CSS, video URLs, secties — alles.',
+          'Dit is Claude Design\'s cheatcode. Claude Code krijgt perfect briefing.'
+        ]
+      },
+      {
+        timing: '1:30 - 3:30', shot: 'Editor split — CLAUDE.md + ORBIS-DESIGN.md',
+        title: 'De CLAUDE.md Webapp Blueprint',
+        lines: [
+          'Voor Claude Code echt kan bouwen, heeft het een handboek nodig.',
+          'Dit is CLAUDE.md. Maar dan voor je webapp.',
+          'Tech Stack: Vite + React 18 + TypeScript. Tailwind CSS. lucide-react. Anton + Condiment.',
+          'Vastgelegd. Niet onderhandelbaar.',
+          'Components in src/components/, sections in src/components/sections/, assets in public/.',
+          'public/texture.png vereist — subtle grain overlay.',
+          'Named exports. TypeScript strict.',
+          'Liquid Glass: class op navbar, social buttons, NFT cards, overlay bars.',
+          'backdrop-filter blur(4px), inset shine 1px, conic border mask.',
+          'NIET op bg-only elementen — alleen op containers met content.',
+          'Alle 6 CloudFront URLs: autoPlay loop muted playsInline.',
+          'Hero: object-cover. CTA: w-full h-auto block (native aspect).',
+          'Dit is waarom de cursus werkt: ORBIS-DESIGN.md + CLAUDE.md + Claude Design export = Claude Code kan niet falen.'
+        ]
+      },
+      {
+        timing: '3:30 - 4:30', shot: 'Claude Code terminal screen',
+        title: '/build-page skill',
+        lines: [
+          'Claude Code start de build.',
+          'Scaffold Vite + React + TypeScript project. Install Tailwind, lucide-react.',
+          'Verwerkt Tailwind config met Orbis design tokens — bg #010828, cream, neon.',
+          'Registreert Anton + Condiment via Google Fonts in index.html.',
+          'Bouwt secties in components/sections: Hero, About, Collection, CTA.',
+          'Maakt liquid-glass class in index.css met complete conic border-mask.',
+          'Download texture.png of placeholder naar public/.'
+        ]
+      },
+      {
+        timing: '4:30 - 7:00', shot: 'Terminal + browser + Chrome DevTools',
+        title: 'Lokale Preview + Performance Check',
+        lines: [
+          'Build klaar. Nu lokale test.',
+          'Dat wat we in Claude Design bouwden voor Orbis. Nu echt. Werkend. Vite + React onder de motorkap.',
+          'Hero sectie: full-bleed CloudFront video loop. Anton heading "Beyond earth". Condiment cursive "Nft collection" in neon.',
+          'Liquid-glass navbar met 5 links. Hover -> text-neon.',
+          'Social icons rechts boven — 3 stuks, 56x56 liquid-glass.',
+          'Scroll naar About — tweede video background, "I\'m orbis" + Condiment overlay.',
+          'Collection Grid — 3 NFT cards met rarity 8.7 / 9.0 / 8.2. Purple gradient chevron buttons.',
+          'Final CTA — full-bleed video, "JOIN US. REVEAL. DEFINE. FOLLOW." met "Go beyond" cursive.',
+          'Mobile test. iPhone 14 Pro viewport. Social icons stacken onder heading. Nav verdwijnt.',
+          'Video loops stoppen op low-power mode — check playsInline.',
+          'Lighthouse audit — 90+ performance.',
+          'Dit is waar handmatige builds 3 dagen over doen. Wij: 5 minuten.'
+        ]
+      },
+      {
+        timing: '7:00 - 10:00', shot: 'Terminal — /deploy-site',
+        title: '/deploy-site naar Vercel',
+        lines: [
+          'En daar is het. Live. Op Vercel. Met SSL. Met CDN.',
+          'Orbis.Nft is nu online. Klaar voor drop.'
+        ]
+      },
+      {
+        timing: '10:00 - 11:00', shot: 'Terminal — vercel domains add',
+        title: 'Custom Domain (als klant dat wil)',
+        lines: [
+          'Bij je registrar: A record naar Vercel IP of CNAME naar cname.vercel-dns.com.',
+          '5 minuten. SSL automatisch.',
+          'Voor NFT klanten: custom domain essentieel voor trust.',
+          'Orbis.Nft heeft orbis-nft.com of .xyz of .io — web3 branding.'
+        ]
+      },
+      {
+        timing: '11:00 - 11:45', shot: 'Return talking head',
+        title: 'Recap',
+        lines: [
+          'Even terugkijken. In deze les hebben we:',
+          '1. Claude Design export genomen van Orbis.Nft.',
+          '2. /build-page gebruikt. Vite + React + Tailwind scaffold.',
+          '3. Lokaal getest. 4 secties werkend. Mobile ok. Videos loopen. Lighthouse 90+.',
+          '4. /deploy-site. GitHub + Vercel production.',
+          '5. Custom domain flow getoond.',
+          'Totaal: ~10 minuten van design naar live URL.',
+          'Zonder deze stack? 2-3 dagen minimum. En dit is voor een merk dat niet eens van jou is.'
+        ]
+      },
+      {
+        timing: '11:45 - 12:00', shot: 'Gift overlay',
+        title: 'Gift + transitie',
+        lines: [
+          'Gift voor les 6: /build-page skill + CLAUDE.md webapp blueprint voor Vite/React + liquid-glass prompt library.',
+          'Complete deploy recipe. Kijker runs this, deployt zijn eigen project.',
+          'Les 7: een pagina live = leuk. Site + mobile + deck in 30 min voor Orbis = explosief.',
+          'Victory lap.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '07', slug: '07-command-center', num: 7, title: 'Command Center', time: '6 min',
+    h1: 'Alles in <em>30 minuten</em>',
+    eyebrow: 'Les 7 - Victory lap',
+    intro: 'Victory lap. /design-command-center = site + mobile + deck in 30 min. Agency pricing: 4-15K per bundle. Een solo operator: 30-50K/maand zonder team.',
+    steps: [
+      { title: '/design-command-center demo', desc: 'Run in terminal. Vragen: klantnaam, outputs, sections, design source. Output: 3 mega prompts in prompts.md.' },
+      { title: 'Claude Design handoff (3x parallel)', desc: '3 chats parallel: site + mobile + deck. ~10 min Claude Design tijd. Zelfde tokens, 3 output-formaten.' },
+      { title: 'Build + deploy time-lapse', desc: '/build-page -> /deploy-site -> live URL. 30 min vanaf intake.' },
+      { title: 'Agency angle + pricing', desc: 'One-pager 4-7K, +mobile 6-9K, full bundle 10-15K. 90% marge. One-time, geen recurring. Denk aan jouw eerste klant - naam + datum.' }
+    ],
+    prompts: [],
+    script: [
+      {
+        timing: '0:00 - 0:30', shot: 'Talking head, hype',
+        title: 'Les-opening',
+        lines: [
+          'Les 7. Victory lap.',
+          'Alles wat we hebben geleerd — in een commando.',
+          '/design-command-center.',
+          'Van idee tot 3 deliverables in 30 minuten.',
+          'Dit is waar het agency-verdienmodel echt explodeert.'
+        ]
+      },
+      {
+        timing: '0:30 - 1:30', shot: 'Talking head -> screen — vanity row',
+        title: 'De Situatie',
+        lines: [
+          'Onthoud: we bouwen voor Orbis.Nft. Niet mijn merk. Compleet andere niche dan 187N.',
+          'Drie deliverables die elke NFT of web3 klant wil zien:',
+          'Een — live one-pager website.',
+          'Twee — mobile companion app prototype.',
+          'Drie — investor pitch deck.',
+          'Normaal: 3 dagen werk. 3 aparte tools. 3 aparte exports.',
+          'Met /design-command-center: 30 minuten. Een run. Een design.md. Drie outputs.'
+        ]
+      },
+      {
+        timing: '1:30 - 2:30', shot: 'Terminal — Claude Code',
+        title: '/design-command-center Live Demo',
+        lines: [
+          'Claude Code leest ORBIS-DESIGN.md. Genereert 3 complete mega prompts.',
+          'Site prompt (4 secties). Mobile prompt (6 screens). Deck prompt (10 slides).',
+          'Toont in prompts.md — deze worden een voor een in Claude Design geplakt.'
+        ]
+      },
+      {
+        timing: '2:30 - 3:30', shot: 'Montage (3x speed) — 3 Claude Design chats',
+        title: 'De Claude Design Handoff',
+        lines: [
+          'Drie deliverables. Alle drie geexporteerd. Tien minuten in Claude Design.',
+          'Zelfde videos. Zelfde fonts. Zelfde liquid-glass. Drie compleet andere output-formaten.'
+        ]
+      },
+      {
+        timing: '3:30 - 4:00', shot: 'Terminal Claude Code — time-lapse',
+        title: 'Build + Deploy',
+        lines: [
+          'Back to Claude Code.',
+          'Build. Deploy. 30 minuten vanaf intake.',
+          'Live URL. Mobile preview link. Deck PPTX.'
+        ]
+      },
+      {
+        timing: '4:00 - 5:00', shot: 'Return talking head + on-screen pricing overlay',
+        title: 'De Agency Angle + Pricing',
+        lines: [
+          'Deze stack = jouw dienst als agency.',
+          'Typische agency pricing voor NFT/web3 klanten:',
+          'One-pager site: 4-7K euro.',
+          'Site + mobile app: 6-9K euro.',
+          'Full bundle (site + mobile + investor deck): 10-15K euro.',
+          'Eenmalig. Geen subscriptions.',
+          'Jouw tijd investering: 30 min per complete bundle.',
+          'Marge: 90% plus.',
+          'One-time, geen recurring. We verkopen een design system. Klant operates.',
+          'Een solo operator: 30-50K per maand. Zonder team. Zonder kantoor.',
+          'En het mooiste: Orbis was niet eens jouw merk. Je hebt hem nooit eerder gezien. Toch heb je hem gebouwd in 30 min.'
+        ]
+      },
+      {
+        timing: '5:00 - 5:40', shot: 'Browser — orbis-nft.vercel.app live + telefoon + PowerPoint',
+        title: 'Victory Lap — Live Orbis.Nft Stack',
+        lines: [
+          'Open live orbis-nft.vercel.app — scroll door 4 secties.',
+          'Open mobile prototype op telefoon — 6 schermen swipe.',
+          'Open .pptx deck — 10 slides investor pitch.',
+          'Dit is de agency in een sprint.',
+          'Dit is wat je aan klanten verkoopt.',
+          'En niet voor jouw merk — voor iemand anders die dit morgen komt halen.'
+        ]
+      },
+      {
+        timing: '5:40 - 6:00', shot: 'Gift overlay + outro bridge',
+        title: 'Gift + Outro bridge',
+        lines: [
+          'Laatste gift: agency onboarding template.',
+          'Complete flow — van lead capture tot delivery.',
+          'Email templates. Intake forms. Pricing structuur.',
+          'Plus: run /design-prompts in Claude Code -> 7 vragen -> jouw eigen volgende klant\'s volledige bundle.',
+          'Copy-paste voor je eigen agency launch. Link in description.',
+          'Dat was de cursus. Check de outro.'
+        ]
+      }
+    ]
+  },
+  {
+    id: '08', slug: '08-outro', num: 8, title: 'Outro', time: '30 sec',
+    h1: 'Go <em>ship</em>',
+    eyebrow: 'Les 8 - Finale',
+    intro: 'Dat was Claude Design. Je kan nu websites, mobile apps, pitch decks, volledige klant-launches. 30 min per klant. Met een design.md als fundament.',
+    steps: [
+      { title: 'Recap wat je nu kan', desc: 'On-brand renders vanaf frame 1. Mobile + deck naast site zonder triple-work. Quota-efficient. Claude Design -> Claude Code handoff.' },
+      { title: 'Volgende stappen', desc: 'Gratis cursus: Claude Routines. DM "DESIGN" op Instagram voor skills/templates. Masterclass: 68 lessen + Mac Mini build op lio.circle.so.' }
+    ],
+    prompts: [],
+    script: [
+      {
+        timing: '0:00 - 0:15', shot: 'Talking head, close-up, direct eye contact',
+        title: 'Recap wat je nu kan',
+        lines: [
+          'Dat was Claude Design.',
+          'Je kan nu: websites, mobile apps, pitch decks, volledige klant-launches.',
+          'In 30 minuten per klant.',
+          'Met een design.md als fundament.'
+        ]
+      },
+      {
+        timing: '0:15 - 0:25', shot: 'Talking head + overlay "DM DESIGN" + "Link in bio"',
+        title: 'Bridge + masterclass CTA',
+        lines: [
+          'Volgende gratis cursus: Claude Routines.',
+          'Hoe je AI op autopilot laat werken — scheduling, webhooks, agenten die 24/7 draaien.',
+          'Drie cursussen samen = het fundament.',
+          'Klaar voor de volledige masterclass? 68 lessen, 127 skills, full Mac Mini build pad?',
+          'DM "DESIGN" op Instagram voor alle skills, templates en de CLAUDE.md web app blueprint.',
+          'Of link in bio voor de masterclass zelf.'
+        ]
+      },
+      {
+        timing: '0:25 - 0:30', shot: 'End card (3s extra)',
+        title: 'Signoff',
+        lines: [
+          'Go ship.',
+          'Zie je bij de volgende.'
+        ]
+      }
+    ]
+  }
+];
+
+const PROGRESS_POLL_MS = 2000;
+const PROGRESS_URL = 'progress.json';
+
+let state = {
+  current_lesson: null,
+  current_step: 0,
+  total_steps: 0,
+  completed_lessons: [],
+  lastSync: null
+};
+let selectedLesson = null;
+let instructorMode = localStorage.getItem('cdc-instructor') === '1';
+
+function renderSidebar() {
+  const ul = document.getElementById('lesson-list');
+  ul.innerHTML = '';
+  LESSONS.forEach(l => {
+    const li = document.createElement('li');
+    li.className = 'lesson-item';
+    const isDone = state.completed_lessons.includes(l.id);
+    const isActive = l.id === (selectedLesson || state.current_lesson || '00');
+    if (isDone) li.classList.add('completed');
+    if (isActive) li.classList.add('active');
+    const checkContent = isDone ? '&#10003;' : (state.current_lesson === l.id ? '&#9658;' : '');
+    li.innerHTML = '<div class="lesson-check">' + checkContent + '</div>'
+                 + '<span class="lesson-num">' + l.num + '.</span>'
+                 + '<span class="lesson-title">' + l.title + '</span>'
+                 + '<span class="lesson-time">' + l.time + '</span>';
+    li.onclick = () => { selectedLesson = l.id; renderAll(); };
+    ul.appendChild(li);
+  });
+}
+
+function renderMain() {
+  const lessonId = selectedLesson || state.current_lesson || '00';
+  const lesson = LESSONS.find(l => l.id === lessonId);
+  const main = document.getElementById('main');
+  if (!lesson) {
+    main.innerHTML = '';
+    return;
+  }
+
+  const allDone = state.completed_lessons.length === 9;
+  const isActiveLesson = lesson.id === state.current_lesson;
+  let doneBanner = '';
+  if (allDone && lesson.id === '08') {
+    doneBanner = '<div class="done-banner"><h2>Cursus voltooid</h2><div>Je hebt alle 9 lessen afgerond. Go ship.</div></div>';
+  }
+
+  const stepsHtml = lesson.steps.map((s, i) => {
+    const stepNum = i + 1;
+    let stepClass = 'step';
+    let stepIcon = stepNum;
+    const lessonCompleted = state.completed_lessons.includes(lesson.id);
+    if (lessonCompleted) { stepClass += ' completed'; stepIcon = '&#10003;'; }
+    else if (isActiveLesson) {
+      if (stepNum < state.current_step) { stepClass += ' completed'; stepIcon = '&#10003;'; }
+      else if (stepNum === state.current_step) { stepClass += ' active'; stepIcon = '&#9658;'; }
+    }
+    return '<div class="' + stepClass + '">'
+         + '<div class="step-icon">' + stepIcon + '</div>'
+         + '<div class="step-body">'
+         + '<div class="step-title">Stap ' + stepNum + ' - ' + s.title + '</div>'
+         + '<div class="step-desc">' + s.desc + '</div>'
+         + '</div></div>';
+  }).join('');
+
+  const promptsHtml = lesson.prompts.length > 0 ? (
+    '<div class="prompts-section">'
+    + '<h2>Prompts voor deze les</h2>'
+    + '<p class="intro">Klik een knop om de prompt te kopieren naar clipboard, plak \'m dan in Claude Design.</p>'
+    + '<div class="prompts-grid">'
+    + lesson.prompts.map(p => '<button class="btn-prompt" onclick="copyPrompt(\'' + p.id + '\', this)"><span class="icon">&#128203;</span>' + p.label + '</button>').join('')
+    + '</div></div>'
+  ) : '';
+
+  let scriptHtml = '';
+  if (instructorMode && lesson.script && lesson.script.length > 0) {
+    const segmentsHtml = lesson.script.map(seg => {
+      const linesHtml = seg.lines.map(l => '<li>' + l + '</li>').join('');
+      const noteHtml = seg.note ? '<div class="script-note">' + seg.note + '</div>' : '';
+      return '<div class="script-segment">'
+        + '<div class="script-segment-head">'
+        + '<span class="timing">' + seg.timing + '</span>'
+        + '<span class="shot">' + seg.shot + '</span>'
+        + '</div>'
+        + '<div class="script-segment-title">' + seg.title + '</div>'
+        + '<ul class="script-lines">' + linesHtml + '</ul>'
+        + noteHtml
+        + '</div>';
+    }).join('');
+    scriptHtml = '<div class="script-section">'
+      + '<div class="label-rec"><span class="rec-dot" style="background:var(--error);box-shadow:0 0 8px var(--error);width:8px;height:8px;border-radius:50%;display:inline-block;"></span>REC · Instructor script</div>'
+      + '<h2>Wat jij zegt — ' + lesson.title + '</h2>'
+      + segmentsHtml
+      + '</div>';
+  }
+
+  const statusText = state.completed_lessons.includes(lesson.id) ? '&#10003; Voltooid'
+                   : (isActiveLesson ? '&#9658; Actief' : '&#9675; Nog te doen');
+
+  main.innerHTML = doneBanner
+    + '<div class="lesson-header">'
+    + '<div class="lesson-eyebrow">' + lesson.eyebrow + '</div>'
+    + '<h1 class="lesson-h1">' + lesson.h1 + '</h1>'
+    + '<div class="lesson-meta">'
+    + '<span><strong>Tijd:</strong> ' + lesson.time + '</span>'
+    + '<span><strong>Terminal:</strong> <code>/design:' + lesson.slug + '</code></span>'
+    + '<span><strong>Status:</strong> ' + statusText + '</span>'
+    + '</div></div>'
+    + '<p class="lesson-intro">' + lesson.intro + '</p>'
+    + '<div class="steps">' + stepsHtml + '</div>'
+    + scriptHtml
+    + promptsHtml;
+}
+
+function renderInstructorToggle() {
+  const btn = document.getElementById('instructor-toggle');
+  const label = document.getElementById('instructor-toggle-label');
+  if (instructorMode) {
+    btn.classList.add('on');
+    label.textContent = 'REC · script aan';
+  } else {
+    btn.classList.remove('on');
+    label.textContent = 'Instructor';
+  }
+}
+
+function renderTopbar() {
+  const done = state.completed_lessons.length;
+  document.getElementById('progress-text').textContent = done + ' / 9';
+  document.getElementById('progress-fill').style.width = ((done/9)*100) + '%';
+  const dot = document.getElementById('status-dot');
+  if (state.lastSync && (Date.now() - state.lastSync < PROGRESS_POLL_MS * 3)) {
+    dot.classList.remove('stale');
+  } else {
+    dot.classList.add('stale');
+  }
+}
+
+function renderAll() {
+  renderSidebar();
+  renderMain();
+  renderTopbar();
+  renderInstructorToggle();
+}
+
+function copyPrompt(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+    const original = btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML = '<span class="icon">&#10003;</span>Gekopieerd!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1400);
+  });
+}
+
+async function pollProgress() {
+  try {
+    const res = await fetch(PROGRESS_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('no progress file');
+    const data = await res.json();
+    const prev = JSON.stringify([state.current_lesson, state.current_step, state.completed_lessons]);
+    state.current_lesson = data.current_lesson;
+    state.current_step = data.current_step || 0;
+    state.total_steps = data.total_steps || 0;
+    state.completed_lessons = data.completed_lessons || [];
+    state.lastSync = Date.now();
+    const next = JSON.stringify([state.current_lesson, state.current_step, state.completed_lessons]);
+    if (prev !== next && !selectedLesson) {
+      renderAll();
+    } else if (prev !== next) {
+      renderSidebar();
+      renderTopbar();
+    } else {
+      renderTopbar();
+    }
+  } catch (e) {
+    state.lastSync = null;
+    renderTopbar();
+  }
+}
+
+document.getElementById('progress-text').addEventListener('click', () => {
+  selectedLesson = null;
+  renderAll();
+});
+
+document.getElementById('instructor-toggle').addEventListener('click', () => {
+  instructorMode = !instructorMode;
+  localStorage.setItem('cdc-instructor', instructorMode ? '1' : '0');
+  renderAll();
+});
+
+renderAll();
+pollProgress();
+setInterval(pollProgress, PROGRESS_POLL_MS);
+</script>
+
+</body>
+</html>
